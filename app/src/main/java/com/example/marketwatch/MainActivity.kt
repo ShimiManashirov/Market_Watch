@@ -15,20 +15,24 @@ import com.example.marketwatch.auth.LoginScreen
 import com.example.marketwatch.auth.RegistrationScreen
 import com.example.marketwatch.main.MainScreen
 import com.example.marketwatch.ui.theme.MarketWatchTheme
+import com.example.marketwatch.ui.theme.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MarketWatchTheme {
-                AppNavigation()
+            val themeViewModel: ThemeViewModel = viewModel()
+            val isDarkMode by themeViewModel.isDarkMode.collectAsState()
+
+            MarketWatchTheme(darkTheme = isDarkMode) {
+                AppNavigation(themeViewModel = themeViewModel)
             }
         }
     }
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(themeViewModel: ThemeViewModel) {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
 
@@ -51,7 +55,8 @@ fun AppNavigation() {
                 onLogout = {
                     authViewModel.logout()
                     navController.navigate("login") { popUpTo("main") { inclusive = true } }
-                }
+                },
+                themeViewModel = themeViewModel
             )
         }
     }

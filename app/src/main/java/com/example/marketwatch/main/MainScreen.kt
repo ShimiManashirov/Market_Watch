@@ -5,7 +5,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -15,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -24,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.marketwatch.ui.theme.ThemeViewModel
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
@@ -41,15 +45,23 @@ val items = listOf(
 @Composable
 fun MainScreen(
     userName: String,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    themeViewModel: ThemeViewModel
 ) {
     val navController = rememberNavController()
+    val isDarkMode by themeViewModel.isDarkMode.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Market Watch") },
                 actions = {
+                    IconButton(onClick = { themeViewModel.toggleTheme() }) {
+                        Icon(
+                            if (isDarkMode) Icons.Default.WbSunny else Icons.Default.NightsStay,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
                     IconButton(onClick = onLogout) {
                         Icon(Icons.Default.Logout, contentDescription = "Logout")
                     }

@@ -6,7 +6,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
@@ -16,7 +15,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -44,13 +42,10 @@ fun ProfileScreen(authViewModel: AuthViewModel = viewModel()) {
         // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End, // Changed to End
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /* Handle theme change */ }) {
-                Icon(Icons.Default.NightsStay, contentDescription = "Theme")
-            }
-            Text(text = "פרופיל", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(text = "פרופיל", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Icon(Icons.Default.Person, contentDescription = "Profile Icon", tint = Color(0xFF8A2BE2))
         }
         Text(
