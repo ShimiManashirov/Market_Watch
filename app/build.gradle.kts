@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
     // Firebase Dependencies
     implementation("com.google.firebase:firebase-auth-ktx:23.2.1")

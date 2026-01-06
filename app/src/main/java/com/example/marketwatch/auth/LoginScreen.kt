@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun LoginScreen(
     onNavigateToRegistration: () -> Unit,
+    onLoginSuccess: () -> Unit,
     authViewModel: AuthViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
@@ -82,7 +83,7 @@ fun LoginScreen(
                         isLoading = false
                         if (success) {
                             Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                            // TODO: Navigate to the main screen of the app
+                            onLoginSuccess()
                         } else {
                             Toast.makeText(context, "Login failed: $message", Toast.LENGTH_SHORT).show()
                         }
