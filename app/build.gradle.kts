@@ -54,9 +54,12 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // Firebase Dependencies - Defined with explicit versions to fix build issues
+    // Firebase Dependencies
     implementation("com.google.firebase:firebase-auth-ktx:23.2.1")
     implementation("com.google.firebase:firebase-analytics-ktx:22.5.0")
+    implementation("com.google.firebase:firebase-appcheck-playintegrity:19.0.1")
+    implementation("com.google.firebase:firebase-appcheck-debug:19.0.1")
+    implementation("com.google.firebase:firebase-firestore-ktx:25.1.4")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
