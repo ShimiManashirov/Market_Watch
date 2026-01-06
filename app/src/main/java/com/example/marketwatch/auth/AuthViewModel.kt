@@ -1,5 +1,6 @@
 package com.example.marketwatch.auth
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -16,6 +17,9 @@ class AuthViewModel : ViewModel() {
     private val _userEmail = MutableStateFlow("")
     val userEmail = _userEmail.asStateFlow()
 
+    private val _userPreferences = MutableStateFlow<Map<String, Any>>(emptyMap())
+    val userPreferences = _userPreferences.asStateFlow()
+
     init {
         fetchUserDetails()
     }
@@ -25,12 +29,68 @@ class AuthViewModel : ViewModel() {
         userId?.let {
             db.collection("users").document(it).get()
                 .addOnSuccessListener { document ->
-                    if (document != null) {
+                    if (document != null && document.exists()) {
                         _userName.value = document.getString("name") ?: "Guest"
                         _userEmail.value = document.getString("email") ?: ""
+                        _userPreferences.value = document.data ?: emptyMap()
                     }
                 }
         }
+    }
+
+    fun updateUserPreference(key: String, value: String) {
+        val userId = auth.currentUser?.uid
+        userId?.let {
+            db.collection("users").document(it).update(key, value)
+                .addOnSuccessListener { 
+                    Log.d("AuthViewModel", "User preference updated: $key = $value")
+                    fetchUserDetails()
+                }
+                .addOnFailureListener { e -> Log.w("AuthViewModel", "Error updating preference", e) }
+        }
+    }
+
+    fun changeUserPassword(newPassword: String, onComplete: (Boolean, String?) -> Unit) {
+        auth.currentUser?.updatePassword(newPassword)?.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d("AuthViewModel", "Password updated successfully")
+                onComplete(true, null)
+            } else {
+                Log.w("AuthViewModel", "Error updating password", task.exception)
+                onComplete(false, task.exception?.message)
+            }
+        }
+    }
+
+    fun deleteUser(onComplete: (Boolean, String?) -> Unit) {
+        val user = auth.currentUser
+        val userId = user?.uid
+
+        if (userId == null) {
+            onComplete(false, "User not found")
+            return
+        }
+
+        // 1. Delete user document from Firestore
+        db.collection("users").document(userId).delete()
+            .addOnSuccessListener { 
+                Log.d("AuthViewModel", "User document deleted from Firestore")
+                // 2. Delete user from Authentication
+                user.delete()
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            Log.d("AuthViewModel", "User deleted from Authentication")
+                            onComplete(true, null)
+                        } else {
+                            Log.w("AuthViewModel", "Error deleting user from Authentication", task.exception)
+                            onComplete(false, task.exception?.message)
+                        }
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.w("AuthViewModel", "Error deleting user document from Firestore", e)
+                onComplete(false, e.message)
+            }
     }
 
     fun createUser(email: String, password: String, fullName: String, onComplete: (Boolean, String?) -> Unit) {
@@ -40,7 +100,9 @@ class AuthViewModel : ViewModel() {
                     val userId = auth.currentUser?.uid
                     val userDetails = hashMapOf(
                         "name" to fullName,
-                        "email" to email
+                        "email" to email,
+                        "currency" to "USD - $ (דולר אמריקאי)", // Default preference
+                        "timezone" to "(UTC+3) ישראל" // Default preference
                     )
 
                     userId?.let {
@@ -74,5 +136,6 @@ class AuthViewModel : ViewModel() {
         auth.signOut()
         _userName.value = "Guest"
         _userEmail.value = ""
+        _userPreferences.value = emptyMap()
     }
 }

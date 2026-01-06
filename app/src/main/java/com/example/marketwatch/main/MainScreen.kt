@@ -21,12 +21,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.marketwatch.auth.AuthViewModel
 import com.example.marketwatch.ui.theme.ThemeViewModel
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -46,10 +48,12 @@ val items = listOf(
 fun MainScreen(
     userName: String,
     onLogout: () -> Unit,
+    onAccountDeleted: () -> Unit, // New callback
     themeViewModel: ThemeViewModel
 ) {
     val navController = rememberNavController()
     val isDarkMode by themeViewModel.isDarkMode.collectAsState()
+    val authViewModel: AuthViewModel = viewModel() // Get AuthViewModel here
 
     Scaffold(
         topBar = {
@@ -98,7 +102,12 @@ fun MainScreen(
         ) {
             composable(Screen.Home.route) { HomeScreen(userName) }
             composable(Screen.Portfolio.route) { PortfolioScreen() }
-            composable(Screen.Profile.route) { ProfileScreen() }
+            composable(Screen.Profile.route) { 
+                ProfileScreen(
+                    authViewModel = authViewModel,
+                    onAccountDeleted = onAccountDeleted // Pass callback to ProfileScreen
+                )
+            }
         }
     }
 }

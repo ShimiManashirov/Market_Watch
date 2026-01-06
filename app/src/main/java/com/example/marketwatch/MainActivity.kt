@@ -56,7 +56,10 @@ fun AppNavigation(themeViewModel: ThemeViewModel) {
                     authViewModel.logout()
                     navController.navigate("login") { popUpTo("main") { inclusive = true } }
                 },
-                themeViewModel = themeViewModel
+                themeViewModel = themeViewModel,
+                onAccountDeleted = {
+                    navController.navigate("login") { popUpTo("main") { inclusive = true } }
+                }
             )
         }
     }

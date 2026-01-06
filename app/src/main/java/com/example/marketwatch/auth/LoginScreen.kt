@@ -102,7 +102,7 @@ fun LoginScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = onNavigateToRegistration, enabled = !isLoading) {
-                Text("Don\'t have an account? Sign up")
+                Text("Don't have an account? Sign up")
             }
         }
     }
