@@ -11,8 +11,8 @@ import java.util.concurrent.TimeUnit
 
 object ApiClient {
 
-    private const val BASE_URL = "https://finnhub.io/api/v1/"
-    // API key is now read from BuildConfig
+    private const val FINNHUB_BASE_URL = "https://finnhub.io/api/v1/"
+    private const val FRANKFURTER_BASE_URL = "https://api.frankfurter.app/"
     val API_KEY = BuildConfig.FINNHUB_API_KEY
 
     private val json = Json {
@@ -24,17 +24,24 @@ object ApiClient {
     }
 
     private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor) // For debugging
+        .addInterceptor(loggingInterceptor)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
+    private val finnhubRetrofit = Retrofit.Builder()
+        .baseUrl(FINNHUB_BASE_URL)
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
 
-    val finnhubApi: FinnhubApi = retrofit.create(FinnhubApi::class.java)
+    private val frankfurterRetrofit = Retrofit.Builder()
+        .baseUrl(FRANKFURTER_BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+
+    val finnhubApi: FinnhubApi = finnhubRetrofit.create(FinnhubApi::class.java)
+    val exchangeRateApi: ExchangeRateApi = frankfurterRetrofit.create(ExchangeRateApi::class.java)
 }

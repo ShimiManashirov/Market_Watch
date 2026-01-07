@@ -1,5 +1,6 @@
 package com.example.marketwatch.main
 
+import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -42,13 +43,14 @@ import java.util.*
 fun StockDetailScreen(
     stockSymbol: String, 
     onNavigateBack: () -> Unit,
-    authViewModel: AuthViewModel = viewModel(),
-    viewModel: StockDetailViewModel = viewModel(factory = StockDetailViewModelFactory(stockSymbol))
+    authViewModel: AuthViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val factory = StockDetailViewModelFactory(context.applicationContext as Application, stockSymbol)
+    val viewModel: StockDetailViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
     var showBuyDialog by remember { mutableStateOf(false) }
     var showSellDialog by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     val watchlist by authViewModel.watchlist.collectAsState()
     val isWatchlisted = watchlist.contains(stockSymbol)
 
@@ -56,7 +58,7 @@ fun StockDetailScreen(
         (uiState as? StockDetailUiState.Success)?.let {
             AddTransactionDialog(
                 stockName = it.profile.name ?: "",
-                currentPrice = it.quote.currentPrice ?: 0.0,
+                currentPrice = it.convertedPrice,
                 onConfirm = { quantity, price ->
                     viewModel.addTransaction(it.profile.ticker ?: stockSymbol, it.profile.name ?: "", quantity, price) { success, message ->
                         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
@@ -75,7 +77,7 @@ fun StockDetailScreen(
         (uiState as? StockDetailUiState.Success)?.let {
             AddTransactionDialog(
                 stockName = it.profile.name ?: "",
-                currentPrice = it.quote.currentPrice ?: 0.0,
+                currentPrice = it.convertedPrice,
                 isBuy = false,
                 onConfirm = { quantity, price ->
                     viewModel.addTransaction(it.profile.ticker ?: stockSymbol, it.profile.name ?: "", -quantity, price) { success, message ->
@@ -136,7 +138,7 @@ fun StockDetailScreen(
                     CircularProgressIndicator()
                 }
                 is StockDetailUiState.Success -> {
-                    StockDetailsContent(state.quote, state.profile, state.news)
+                    StockDetailsContent(state.quote, state.profile, state.news, state.convertedPrice, state.currencySymbol)
                 }
                 is StockDetailUiState.Error -> {
                     Text(text = "Error: ${state.message}", color = MaterialTheme.colorScheme.error)
@@ -147,7 +149,13 @@ fun StockDetailScreen(
 }
 
 @Composable
-fun StockDetailsContent(quote: FinnhubQuote, profile: FinnhubCompanyProfile, news: List<CompanyNews>) {
+fun StockDetailsContent(
+    quote: FinnhubQuote, 
+    profile: FinnhubCompanyProfile, 
+    news: List<CompanyNews>,
+    convertedPrice: Double,
+    currencySymbol: String
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -162,7 +170,7 @@ fun StockDetailsContent(quote: FinnhubQuote, profile: FinnhubCompanyProfile, new
 
         StockHeader(profile)
         PriceDetails(
-            price = "${String.format(Locale.US, "%.2f", quote.currentPrice)} USD",
+            price = "${String.format(Locale.US, "%.2f", convertedPrice)} $currencySymbol",
             change = "${String.format(Locale.US, "%.2f", priceChange)} (${String.format(Locale.US, "%.2f", percentChange)}%)",
             changeColor = changeColor
         )

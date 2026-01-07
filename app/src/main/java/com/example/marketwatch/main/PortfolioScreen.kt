@@ -26,7 +26,7 @@ fun PortfolioScreen(
     val totalPortfolioValue by portfolioViewModel.totalPortfolioValue.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TotalPortfolioValue(value = totalPortfolioValue)
+        TotalPortfolioValue(value = totalPortfolioValue, currencySymbol = holdings.firstOrNull()?.currencySymbol ?: "$")
         if (holdings.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -38,7 +38,7 @@ fun PortfolioScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(holdings, key = { it.symbol }) { holding ->
                     HoldingCard(
@@ -52,7 +52,7 @@ fun PortfolioScreen(
 }
 
 @Composable
-fun TotalPortfolioValue(value: Double) {
+fun TotalPortfolioValue(value: Double, currencySymbol: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -62,7 +62,7 @@ fun TotalPortfolioValue(value: Double) {
         Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Total Portfolio Value", style = MaterialTheme.typography.titleMedium)
             Text(
-                text = "${String.format(Locale.US, "%,.2f", value)} USD",
+                text = "${String.format(Locale.US, "%,.2f", value)} $currencySymbol",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -90,12 +90,13 @@ fun HoldingCard(holding: Holding, onClick: () -> Unit) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = holding.symbol, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     Text(text = holding.name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "${String.format(Locale.US, "%.2f", holding.totalQuantity)} shares", style = MaterialTheme.typography.bodySmall)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     if (holding.currentPrice != null) {
                         Text(
-                            text = "${String.format(Locale.US, "%,.2f", currentValue)} USD",
-                            fontWeight = FontWeight.SemiBold,
+                            text = "${String.format(Locale.US, "%,.2f", currentValue)} ${holding.currencySymbol}", 
+                            fontWeight = FontWeight.SemiBold, 
                             fontSize = 18.sp
                         )
                         Text(
@@ -103,13 +104,12 @@ fun HoldingCard(holding: Holding, onClick: () -> Unit) {
                             color = changeColor,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                    } else {
+                    }
+                     else {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "${String.format(Locale.US, "%.2f", holding.totalQuantity)} shares at avg. ${String.format(Locale.US, "%.2f", holding.averagePrice)}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
