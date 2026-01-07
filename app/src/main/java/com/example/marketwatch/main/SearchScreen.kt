@@ -4,10 +4,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marketwatch.network.FinnhubSymbol
@@ -32,6 +36,8 @@ fun SearchScreen(
                 searchViewModel.search(it)
             },
             label = { Text("Search Stocks") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") },
+            shape = RoundedCornerShape(24.dp),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -52,7 +58,6 @@ fun SearchScreen(
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(state.results) { symbol ->
                         SearchResultItem(symbol = symbol) {
-                            // Navigate to the detail screen when a stock is clicked
                             onStockClick(symbol.symbol)
                         }
                     }
@@ -69,16 +74,22 @@ fun SearchScreen(
 
 @Composable
 fun SearchResultItem(symbol: FinnhubSymbol, onClick: () -> Unit) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = symbol.displaySymbol, style = MaterialTheme.typography.bodyLarge)
-            Text(text = symbol.description, style = MaterialTheme.typography.bodySmall)
+        Row(
+            modifier = Modifier
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = symbol.displaySymbol, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = symbol.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

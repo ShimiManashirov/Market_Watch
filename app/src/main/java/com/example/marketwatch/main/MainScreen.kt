@@ -1,16 +1,24 @@
 package com.example.marketwatch.main
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -19,8 +27,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -29,6 +41,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil.compose.AsyncImage
+import com.example.marketwatch.R
 import com.example.marketwatch.auth.AuthViewModel
 import com.example.marketwatch.ui.theme.ThemeViewModel
 
@@ -47,16 +61,32 @@ val items = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    authViewModel: AuthViewModel, 
+    authViewModel: AuthViewModel,
     themeViewModel: ThemeViewModel
 ) {
     val navController = rememberNavController()
     val isDarkMode by themeViewModel.isDarkMode.collectAsState()
+    val userName by authViewModel.userName.collectAsState()
+    val userProfileImageUrl by authViewModel.userProfileImageUrl.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Market Watch") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AsyncImage(
+                            model = userProfileImageUrl,
+                            contentDescription = "User Profile Image",
+                            placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+                            error = painterResource(id = R.drawable.ic_launcher_foreground),
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Hello, $userName")
+                    }
+                },
                 actions = {
                     IconButton(onClick = { themeViewModel.toggleTheme() }) {
                         Icon(
