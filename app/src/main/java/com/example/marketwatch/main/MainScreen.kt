@@ -132,7 +132,10 @@ fun MainScreen(
             Modifier.padding(innerPadding)
         ) {
             composable(Screen.Feed.route) { 
-                FeedScreen(onAddPost = { /* Navigate to Add Post Screen */ })
+                FeedScreen(onAddPost = { navController.navigate("addPost") })
+            }
+            composable("addPost") {
+                AddPostScreen(onNavigateBack = { navController.navigateUp() })
             }
             composable(Screen.Search.route) { 
                 SearchScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") })
