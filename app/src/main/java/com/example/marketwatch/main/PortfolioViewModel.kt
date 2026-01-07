@@ -2,35 +2,33 @@ package com.example.marketwatch.main
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.marketwatch.auth.AuthViewModel
 import com.example.marketwatch.network.ApiClient
 import com.example.marketwatch.util.CurrencyConverter
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-// Represents a summary of all transactions for a single stock
 data class Holding(
     val symbol: String,
     val name: String,
     val totalQuantity: Double,
     val averagePrice: Double,
-    // Live data
     val currentPrice: Double? = null,
     val totalValue: Double? = null,
     val currencySymbol: String = "$"
 )
 
-class PortfolioViewModel : ViewModel() {
+class PortfolioViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
 
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val db = FirebaseFirestore.getInstance()
 
     private val _holdings = MutableStateFlow<List<Holding>>(emptyList())
     val holdings = _holdings.asStateFlow()
@@ -42,20 +40,21 @@ class PortfolioViewModel : ViewModel() {
     private var currencySymbol = "$"
 
     init {
-        fetchUserPreferencesAndHoldings()
-    }
-
-    private fun fetchUserPreferencesAndHoldings() {
-        val userId = auth.currentUser?.uid ?: return
-        db.collection("users").document(userId).get().addOnSuccessListener { userDoc ->
-            val currencyPref = userDoc.getString("currency") ?: "USD - $ (US Dollar)"
-            preferredCurrency = currencyPref.split(" ")[0]
-            currencySymbol = currencyPref.split(" ")[2].replace("(", "").replace(")", "")
-            fetchHoldings(userId)
+        viewModelScope.launch {
+            // React to changes in user preferences, specifically the currency
+            authViewModel.userPreferences.collectLatest { preferences ->
+                val currencyPref = preferences["currency"] as? String ?: "USD - $ (US Dollar)"
+                preferredCurrency = currencyPref.split(" ")[0]
+                currencySymbol = currencyPref.split(" ")[2].replace("(", "").replace(")", "")
+                // Re-fetch and re-calculate holdings whenever currency changes
+                fetchHoldings()
+            }
         }
     }
 
-    private fun fetchHoldings(userId: String) {
+    private fun fetchHoldings() {
+        val userId = authViewModel.currentUser.value?.uid ?: return
+
         db.collection("users").document(userId).collection("transactions")
             .orderBy("date", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
@@ -105,5 +104,15 @@ class PortfolioViewModel : ViewModel() {
                 Log.e("PortfolioViewModel", "Error fetching current prices", e)
             }
         }
+    }
+}
+
+class PortfolioViewModelFactory(private val authViewModel: AuthViewModel) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(PortfolioViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return PortfolioViewModel(authViewModel) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

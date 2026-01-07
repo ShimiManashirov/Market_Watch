@@ -15,13 +15,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.marketwatch.auth.AuthViewModel
 import java.util.Locale
 
 @Composable
 fun PortfolioScreen(
-    portfolioViewModel: PortfolioViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel(),
     onStockClick: (String) -> Unit
 ) {
+    val portfolioViewModel: PortfolioViewModel = viewModel(factory = PortfolioViewModelFactory(authViewModel))
     val holdings by portfolioViewModel.holdings.collectAsState()
     val totalPortfolioValue by portfolioViewModel.totalPortfolioValue.collectAsState()
 
@@ -90,7 +92,6 @@ fun HoldingCard(holding: Holding, onClick: () -> Unit) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = holding.symbol, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     Text(text = holding.name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(text = "${String.format(Locale.US, "%.2f", holding.totalQuantity)} shares", style = MaterialTheme.typography.bodySmall)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     if (holding.currentPrice != null) {
@@ -104,12 +105,13 @@ fun HoldingCard(holding: Holding, onClick: () -> Unit) {
                             color = changeColor,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                    }
-                     else {
+                    } else {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "${String.format(Locale.US, "%.2f", holding.totalQuantity)} shares at avg. ${String.format(Locale.US, "%.2f", holding.averagePrice)} ${holding.currencySymbol}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

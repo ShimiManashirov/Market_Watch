@@ -47,23 +47,28 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun fetchUserDetails(userId: String) {
-        db.collection("users").document(userId).get()
-            .addOnSuccessListener { document ->
+        // Use snapshot listener for real-time updates on user profile
+        db.collection("users").document(userId)
+            .addSnapshotListener { document, e ->
+                if (e != null) {
+                    Log.w("AuthViewModel", "User details listen failed.", e)
+                    return@addSnapshotListener
+                }
                 if (document != null && document.exists()) {
                     _userName.value = document.getString("name") ?: "Guest"
                     _userEmail.value = document.getString("email") ?: ""
                     _userProfileImageUrl.value = document.getString("profileImageUrl")
                     val data = document.data
-                    val simpleData = data?.filterValues { it !is Map<*, *> && it !is List<*> }
-                    _userPreferences.value = simpleData ?: emptyMap()
+                    // Filter out complex objects if any, to keep preferences simple
+                    _userPreferences.value = data?.filterValues { it !is Map<*, *> && it !is List<*> } ?: emptyMap()
                 }
             }
         
-        // Fetch watchlist
+        // Use snapshot listener for real-time updates on watchlist
         db.collection("users").document(userId).collection("watchlist")
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
-                    Log.w("AuthViewModel", "Listen failed.", e)
+                    Log.w("AuthViewModel", "Watchlist listen failed.", e)
                     return@addSnapshotListener
                 }
                 val symbols = snapshot?.documents?.map { it.id } ?: emptyList()
@@ -85,12 +90,10 @@ class AuthViewModel : ViewModel() {
         val isInWatchlist = _watchlist.value.contains(symbol)
 
         if (isInWatchlist) {
-            // Remove from watchlist
             docRef.delete()
                 .addOnSuccessListener { onComplete(true, false) } // Success, removed
                 .addOnFailureListener { onComplete(false, false) }
         } else {
-            // Add to watchlist
             docRef.set(mapOf("addedAt" to Date()))
                 .addOnSuccessListener { onComplete(true, true) } // Success, added
                 .addOnFailureListener { onComplete(false, false) }
@@ -98,15 +101,10 @@ class AuthViewModel : ViewModel() {
     }
 
     fun updateUserPreference(key: String, value: String) {
-        val userId = auth.currentUser?.uid
-        userId?.let {
-            db.collection("users").document(it).update(key, value)
-                .addOnSuccessListener { 
-                    Log.d("AuthViewModel", "User preference updated: $key = $value")
-                    fetchUserDetails(userId)
-                }
-                .addOnFailureListener { e -> Log.w("AuthViewModel", "Error updating preference", e) }
-        }
+        val userId = auth.currentUser?.uid ?: return
+        db.collection("users").document(userId).update(key, value)
+            .addOnSuccessListener { Log.d("AuthViewModel", "User preference updated: $key = $value") }
+            .addOnFailureListener { e -> Log.w("AuthViewModel", "Error updating preference", e) }
     }
 
     fun uploadProfileImage(uri: Uri, onResult: (Boolean, String?) -> Unit) {
@@ -117,56 +115,45 @@ class AuthViewModel : ViewModel() {
         val storageRef = storage.reference.child("profile_images/$userId")
 
         storageRef.putFile(uri)
-            .addOnSuccessListener {
-                storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    updateUserPreference("profileImageUrl", downloadUri.toString())
+            .continueWithTask { task ->
+                if (!task.isSuccessful) { task.exception?.let { throw it } }
+                storageRef.downloadUrl
+            }.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    updateUserPreference("profileImageUrl", task.result.toString())
                     onResult(true, null)
+                } else {
+                    onResult(false, task.exception?.message)
                 }
-            }
-            .addOnFailureListener { e ->
-                onResult(false, e.message)
             }
     }
 
     fun changeUserPassword(newPassword: String, onComplete: (Boolean, String?) -> Unit) {
         auth.currentUser?.updatePassword(newPassword)?.addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                Log.d("AuthViewModel", "Password updated successfully")
                 onComplete(true, null)
             } else {
-                Log.w("AuthViewModel", "Error updating password", task.exception)
                 onComplete(false, task.exception?.message)
             }
         }
     }
 
     fun deleteUser(onComplete: (Boolean, String?) -> Unit) {
-        val user = auth.currentUser
-        val userId = user?.uid
-
-        if (userId == null) {
-            onComplete(false, "User not found")
-            return
-        }
+        val user = auth.currentUser ?: return onComplete(false, "User not found")
+        val userId = user.uid
 
         db.collection("users").document(userId).delete()
             .addOnSuccessListener { 
-                Log.d("AuthViewModel", "User document deleted from Firestore")
                 user.delete()
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            Log.d("AuthViewModel", "User deleted from Authentication")
                             onComplete(true, null)
                         } else {
-                            Log.w("AuthViewModel", "Error deleting user from Authentication", task.exception)
                             onComplete(false, task.exception?.message)
                         }
                     }
             }
-            .addOnFailureListener { e ->
-                Log.w("AuthViewModel", "Error deleting user document from Firestore", e)
-                onComplete(false, e.message)
-            }
+            .addOnFailureListener { e -> onComplete(false, e.message) }
     }
 
     fun createUser(email: String, password: String, fullName: String, onComplete: (Boolean, String?) -> Unit) {
