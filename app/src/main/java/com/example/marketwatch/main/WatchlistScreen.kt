@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -52,29 +53,36 @@ fun WatchlistItemCard(item: WatchlistItem, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = item.symbol, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = item.symbol, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                item.name?.let {
+                    Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             if (item.quote != null) {
                 Column(horizontalAlignment = Alignment.End) {
                     val priceChange = item.quote.change ?: 0.0
                     val changeColor = if (priceChange >= 0) Color(0xFF00C853) else Color.Red
                     Text(
                         text = "${String.format(Locale.US, "%.2f", item.quote.currentPrice)} USD",
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp
                     )
                     Text(
-                        text = "${String.format(Locale.US, "%.2f", priceChange)}",
-                        color = changeColor
+                        text = String.format(Locale.US, "%.2f", priceChange),
+                        color = changeColor,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             } else {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
         }
     }

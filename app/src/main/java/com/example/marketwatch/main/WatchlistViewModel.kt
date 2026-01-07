@@ -11,11 +11,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class WatchlistItem(val symbol: String, val quote: FinnhubQuote? = null)
+data class WatchlistItem(val symbol: String, val name: String? = null, val quote: FinnhubQuote? = null)
 
 class WatchlistViewModel(authViewModel: AuthViewModel) : ViewModel() {
 
@@ -23,13 +22,16 @@ class WatchlistViewModel(authViewModel: AuthViewModel) : ViewModel() {
         .flatMapLatest { symbols ->
             val itemsFlow = MutableStateFlow(symbols.map { WatchlistItem(it) })
             viewModelScope.launch {
-                val updatedItems = symbols.map {
+                val updatedItems = symbols.map { symbol ->
                     async {
                         try {
-                            val quote = ApiClient.finnhubApi.getQuote(it, ApiClient.API_KEY)
-                            WatchlistItem(it, quote)
+                            val profileDeferred = async { ApiClient.finnhubApi.getCompanyProfile(symbol, ApiClient.API_KEY) }
+                            val quoteDeferred = async { ApiClient.finnhubApi.getQuote(symbol, ApiClient.API_KEY) }
+                            val profile = profileDeferred.await()
+                            val quote = quoteDeferred.await()
+                            WatchlistItem(symbol, profile.name, quote)
                         } catch (e: Exception) {
-                            WatchlistItem(it, null) // In case of error, return item without quote
+                            WatchlistItem(symbol, null, null) // In case of error, return item without details
                         }
                     }
                 }.awaitAll()
