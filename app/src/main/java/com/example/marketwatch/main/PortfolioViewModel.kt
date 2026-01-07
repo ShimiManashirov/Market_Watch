@@ -66,17 +66,27 @@ class PortfolioViewModel : ViewModel() {
             }
     }
 
-    fun addStock(symbol: String, name: String) {
-        val userId = auth.currentUser?.uid ?: return
-        val newStock = hashMapOf(
-            "symbol" to symbol.uppercase(),
-            "name" to name
-        )
+    fun addStock(symbol: String, name: String, onResult: (Boolean, String) -> Unit) {
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            onResult(false, "User not logged in.")
+            return
+        }
 
-        db.collection("users").document(userId).collection("portfolio")
-            .add(newStock)
-            .addOnSuccessListener { Log.d("PortfolioViewModel", "Stock added successfully") }
-            .addOnFailureListener { e -> Log.w("PortfolioViewModel", "Error adding stock", e) }
+        val portfolioCollection = db.collection("users").document(userId).collection("portfolio")
+
+        portfolioCollection.whereEqualTo("symbol", symbol.uppercase()).get()
+            .addOnSuccessListener { documents ->
+                if (documents.isEmpty) {
+                    val newStock = hashMapOf("symbol" to symbol.uppercase(), "name" to name)
+                    portfolioCollection.add(newStock)
+                        .addOnSuccessListener { onResult(true, "'$name' has been added to your portfolio.") }
+                        .addOnFailureListener { e -> onResult(false, "Failed to add stock: ${e.message}") }
+                } else {
+                    onResult(false, "'$name' is already in your portfolio.")
+                }
+            }
+            .addOnFailureListener { e -> onResult(false, "Error checking portfolio: ${e.message}") }
     }
 
     fun removeStock(stockId: String) {

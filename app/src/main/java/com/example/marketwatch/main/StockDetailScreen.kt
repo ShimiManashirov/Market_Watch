@@ -1,8 +1,12 @@
 package com.example.marketwatch.main
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,13 +21,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.marketwatch.network.CompanyNews
 import com.example.marketwatch.network.FinnhubCompanyProfile
 import com.example.marketwatch.network.FinnhubQuote
-import java.util.Locale
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,7 +65,7 @@ fun StockDetailScreen(
                     CircularProgressIndicator()
                 }
                 is StockDetailUiState.Success -> {
-                    StockDetailsContent(state.quote, state.profile)
+                    StockDetailsContent(state.quote, state.profile, state.news)
                 }
                 is StockDetailUiState.Error -> {
                     Text(text = "Error: ${state.message}", color = MaterialTheme.colorScheme.error)
@@ -68,7 +76,7 @@ fun StockDetailScreen(
 }
 
 @Composable
-fun StockDetailsContent(quote: FinnhubQuote, profile: FinnhubCompanyProfile) {
+fun StockDetailsContent(quote: FinnhubQuote, profile: FinnhubCompanyProfile, news: List<CompanyNews>) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -88,6 +96,7 @@ fun StockDetailsContent(quote: FinnhubQuote, profile: FinnhubCompanyProfile) {
             changeColor = changeColor
         )
         CompanyProfile(profile)
+        CompanyNewsFeed(news)
     }
 }
 
@@ -139,6 +148,99 @@ private fun CompanyProfile(profile: FinnhubCompanyProfile) {
             ProfileRow("Market Cap", "${String.format(Locale.US, "%.2f", profile.marketCapitalization)}M")
             ProfileRow("IPO Date", profile.ipo)
             ProfileRow("Website", profile.weburl)
+        }
+    }
+}
+
+@Composable
+private fun CompanyNewsFeed(news: List<CompanyNews>) {
+    val context = LocalContext.current
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("Latest News", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        if (news.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                news.take(5).forEach { newsItem ->
+                    NewsItem(news = newsItem, onClick = {
+                        newsItem.url?.let {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it))
+                            context.startActivity(intent)
+                        }
+                    })
+                }
+            }
+        } else {
+            Text(
+                text = "No recent news available.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun NewsItem(news: CompanyNews, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = news.image,
+                contentDescription = "News article image",
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(80.dp), // Match image size
+                verticalArrangement = Arrangement.SpaceBetween // Push content to top and bottom
+            ) {
+                Text(
+                    text = news.headline ?: "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = news.source ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    val date = news.datetime?.let { Date(it * 1000) }
+                    val formattedDate = date?.let { SimpleDateFormat("MMM dd, yyyy", Locale.US).format(it) }
+                    if (formattedDate != null) {
+                        Text(
+                            text = formattedDate,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

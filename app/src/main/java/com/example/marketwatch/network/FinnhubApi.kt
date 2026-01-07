@@ -24,12 +24,26 @@ interface FinnhubApi {
         @Query("token") token: String
     ): FinnhubCompanyProfile
 
-    @GET("stock/earnings")
-    suspend fun getEarningsCalendar(
+    @GET("company-news")
+    suspend fun getCompanyNews(
         @Query("symbol") symbol: String,
+        @Query("from") from: String,
+        @Query("to") to: String,
         @Query("token") token: String
-    ): List<EarningRelease>
+    ): List<CompanyNews>
+
+    @GET("forex/rates")
+    suspend fun getForexRates(
+        @Query("base") base: String,
+        @Query("token") token: String
+    ): ForexRates
 }
+
+@Serializable
+data class ForexRates(
+    val base: String? = null,
+    val quote: Map<String, Double> = emptyMap()
+)
 
 @Serializable
 data class FinnhubQuote(
@@ -80,14 +94,14 @@ data class FinnhubCompanyProfile(
 )
 
 @Serializable
-data class EarningRelease(
-    val date: String? = null,
-    val epsActual: Double? = null,
-    val epsEstimate: Double? = null,
-    val hour: String? = null,
-    val quarter: Int? = null,
-    val revenueActual: Double? = null,
-    val revenueEstimate: Double? = null,
-    val symbol: String? = null,
-    val year: Int? = null
+data class CompanyNews(
+    val category: String? = null,
+    val datetime: Long? = null,
+    val headline: String? = null,
+    val id: Int? = null,
+    val image: String? = null,
+    val related: String? = null,
+    val source: String? = null,
+    val summary: String? = null,
+    val url: String? = null
 )

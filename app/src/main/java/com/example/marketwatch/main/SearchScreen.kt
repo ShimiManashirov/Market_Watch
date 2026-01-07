@@ -7,10 +7,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -25,13 +27,13 @@ fun SearchScreen(
 ) {
     val uiState by searchViewModel.uiState.collectAsState()
     var query by remember { mutableStateOf("") }
-    var showAddedDialog by remember { mutableStateOf(false) }
-    var addedStockSymbol by remember { mutableStateOf<FinnhubSymbol?>(null) }
+    
+    var showResultDialog by remember { mutableStateOf(false) }
+    var dialogMessage by remember { mutableStateOf("") }
+    var isDialogSuccess by remember { mutableStateOf(true) }
 
-    if (showAddedDialog) {
-        addedStockSymbol?.let {
-            StockAddedDialog(stockName = it.description, onDismiss = { showAddedDialog = false })
-        }
+    if (showResultDialog) {
+        ResultDialog(isSuccess = isDialogSuccess, message = dialogMessage, onDismiss = { showResultDialog = false })
     }
 
     Column(
@@ -66,9 +68,11 @@ fun SearchScreen(
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(state.results) { symbol ->
                         SearchResultItem(symbol = symbol) {
-                            portfolioViewModel.addStock(symbol.symbol, symbol.description)
-                            addedStockSymbol = symbol
-                            showAddedDialog = true
+                            portfolioViewModel.addStock(symbol.symbol, symbol.description) { success, message ->
+                                isDialogSuccess = success
+                                dialogMessage = message
+                                showResultDialog = true
+                            }
                         }
                     }
                 }
@@ -99,8 +103,9 @@ fun SearchResultItem(symbol: FinnhubSymbol, onAdd: () -> Unit) {
 }
 
 @Composable
-fun StockAddedDialog(
-    stockName: String,
+fun ResultDialog(
+    isSuccess: Boolean,
+    message: String,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -114,20 +119,20 @@ fun StockAddedDialog(
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Success",
-                    tint = MaterialTheme.colorScheme.primary,
+                    imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    contentDescription = if (isSuccess) "Success" else "Warning",
+                    tint = if (isSuccess) Color(0xFF00C853) else MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(48.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Success!",
+                    text = if (isSuccess) "Success!" else "Heads Up!",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "'$stockName' has been added to your portfolio.",
+                    text = message,
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium
                 )
