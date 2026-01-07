@@ -6,27 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,8 +25,7 @@ data class Preference(val title: String, val key: String, val icon: ImageVector,
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    authViewModel: AuthViewModel, 
-    onAccountDeleted: () -> Unit
+    authViewModel: AuthViewModel
 ) {
     val userName by authViewModel.userName.collectAsState()
     val userEmail by authViewModel.userEmail.collectAsState()
@@ -53,6 +33,7 @@ fun ProfileScreen(
     var showPasswordDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditNameDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val preferences = listOf(
         Preference("Timezone", "timezone", Icons.Default.Language, listOf("(UTC+3) Israel", "(UTC-4) New York", "(UTC+1) London")),    
@@ -76,12 +57,12 @@ fun ProfileScreen(
         DeleteAccountDialog(
             onConfirm = {
                 authViewModel.deleteUser { success, message ->
-                    if (success) {
-                        onAccountDeleted()
-                    } else {
-                        // Handle error
+                    if (!success) {
+                        Toast.makeText(context, "Failed to delete account: $message", Toast.LENGTH_LONG).show()
                     }
+                    // Navigation is now handled by the AuthStateListener
                 }
+                showDeleteDialog = false // Dismiss the dialog after action
             },
             onDismiss = { showDeleteDialog = false }
         )
@@ -118,8 +99,8 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(20.dp))
         
         PreferencesCard(preferences, userPreferences, authViewModel)
-        
-        Spacer(modifier = Modifier.weight(1f))
+
+        Spacer(modifier = Modifier.height(20.dp))
         
         Button(
             onClick = { showDeleteDialog = true },
@@ -184,24 +165,23 @@ private fun DeleteAccountDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 
 @Composable
 private fun Header() {
-    Column {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Profile", 
                 fontSize = 24.sp, 
-                fontWeight = FontWeight.Bold, 
-                modifier = Modifier.weight(1f)
+                fontWeight = FontWeight.Bold
             )
             Icon(Icons.Default.Person, contentDescription = "Profile Icon", tint = Color(0xFF8A2BE2))
         }
         Text(
             text = "Manage your personal details and preferences",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            fontSize = 14.sp
         )
     }
 }
@@ -216,9 +196,30 @@ private fun PersonalDetailsCard(userName: String, userEmail: String, onChangePas
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            InfoRow(title = "Full Name", value = userName, icon = Icons.Default.AccountCircle, onEditClick = onEditNameClick)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "Full Name", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = userName, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                IconButton(onClick = onEditNameClick) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit Name", tint = MaterialTheme.colorScheme.primary)
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
-            InfoRow(title = "Email", value = userEmail, icon = Icons.Default.Email)
+             Column {
+                Text(text = "Email", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = userEmail, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onChangePasswordClick, modifier = Modifier.align(Alignment.End)) {
                 Text("Change Password")
@@ -247,23 +248,6 @@ private fun PreferencesCard(preferences: List<Preference>, userPreferences: Map<
     }
 }
 
-@Composable
-fun InfoRow(title: String, value: String, icon: ImageVector, onEditClick: (() -> Unit)? = null) {
-    Column {
-        Text(text = title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-        Spacer(modifier = Modifier.height(4.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (onEditClick != null) {
-                IconButton(onClick = onEditClick) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PreferenceItem(preference: Preference, initialValue: String, authViewModel: AuthViewModel) {
@@ -281,7 +265,7 @@ fun PreferenceItem(preference: Preference, initialValue: String, authViewModel: 
         ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = { isExpanded = it }) {
             OutlinedTextField(
                 value = selectedOption,
-                onValueChange = {}, 
+                onValueChange = {},
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
                 modifier = Modifier
@@ -330,23 +314,21 @@ fun ChangePasswordDialog(authViewModel: AuthViewModel, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = {
-                    if (newPassword.isNotEmpty() && newPassword == confirmPassword) {
-                        authViewModel.changeUserPassword(newPassword) { success, message ->
-                            if (success) {
-                                Toast.makeText(context, "Password updated successfully", Toast.LENGTH_SHORT).show()
-                                onDismiss()
-                            } else {
-                                Toast.makeText(context, "Failed to update password: $message", Toast.LENGTH_LONG).show()
-                            }
+            TextButton(onClick = { 
+                if (newPassword.isNotEmpty() && newPassword == confirmPassword) {
+                    authViewModel.changeUserPassword(newPassword) { success, message ->
+                        if (success) {
+                            Toast.makeText(context, "Password updated successfully", Toast.LENGTH_SHORT).show()
+                            onDismiss()
+                        } else {
+                            Toast.makeText(context, "Failed to update password: $message", Toast.LENGTH_LONG).show()
                         }
-                    } else {
-                        Toast.makeText(context, "Passwords do not match or are empty", Toast.LENGTH_SHORT).show()
                     }
+                } else {
+                    Toast.makeText(context, "Passwords do not match or are empty", Toast.LENGTH_LONG).show()
                 }
-            ) {
-                Text("Confirm")
+            }) {
+                Text("Save")
             }
         },
         dismissButton = {

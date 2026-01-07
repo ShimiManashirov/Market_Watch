@@ -10,13 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun LoginScreen(
     onNavigateToRegistration: () -> Unit,
-    onLoginSuccess: () -> Unit,
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -81,10 +79,7 @@ fun LoginScreen(
                     isLoading = true
                     authViewModel.loginUser(email, password) { success, message ->
                         isLoading = false
-                        if (success) {
-                            Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                            onLoginSuccess()
-                        } else {
+                        if (!success) {
                             Toast.makeText(context, "Login failed: $message", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -102,7 +97,7 @@ fun LoginScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = onNavigateToRegistration, enabled = !isLoading) {
-                Text("Don't have an account? Sign up")
+                Text("Don\'t have an account? Sign up")
             }
         }
     }

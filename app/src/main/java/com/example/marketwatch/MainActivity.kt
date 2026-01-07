@@ -22,45 +22,40 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val themeViewModel: ThemeViewModel = viewModel()
+            val authViewModel: AuthViewModel = viewModel()
             val isDarkMode by themeViewModel.isDarkMode.collectAsState()
 
             MarketWatchTheme(darkTheme = isDarkMode) {
-                AppNavigation(themeViewModel = themeViewModel)
+                AppNavigation(themeViewModel = themeViewModel, authViewModel = authViewModel)
             }
         }
     }
 }
 
 @Composable
-fun AppNavigation(themeViewModel: ThemeViewModel) {
+fun AppNavigation(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     val navController = rememberNavController()
-    val authViewModel: AuthViewModel = viewModel()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") {
-            LoginScreen(
-                onNavigateToRegistration = { navController.navigate("registration") },
-                onLoginSuccess = { navController.navigate("main") { popUpTo("login") { inclusive = true } } }
-            )
+    if (currentUser == null) {
+        NavHost(navController = navController, startDestination = "login") {
+            composable("login") {
+                LoginScreen(
+                    onNavigateToRegistration = { navController.navigate("registration") },
+                    authViewModel = authViewModel
+                )
+            }
+            composable("registration") {
+                RegistrationScreen(
+                    onNavigateToLogin = { navController.navigate("login") { popUpTo("login") { inclusive = true } } },
+                    authViewModel = authViewModel
+                )
+            }
         }
-        composable("registration") {
-            RegistrationScreen(
-                onNavigateToLogin = { navController.navigate("login") { popUpTo("login") { inclusive = true } } }
-            )
-        }
-        composable("main") {
-            val userName by authViewModel.userName.collectAsState()
-            MainScreen(
-                userName = userName,
-                onLogout = {
-                    authViewModel.logout()
-                    navController.navigate("login") { popUpTo("main") { inclusive = true } }
-                },
-                themeViewModel = themeViewModel,
-                onAccountDeleted = {
-                    navController.navigate("login") { popUpTo("main") { inclusive = true } }
-                }
-            )
-        }
+    } else {
+        MainScreen(
+            themeViewModel = themeViewModel,
+            authViewModel = authViewModel
+        )
     }
 }

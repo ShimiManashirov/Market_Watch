@@ -2,11 +2,12 @@ package com.example.marketwatch.main
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.NightsStay
-import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,24 +22,25 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.marketwatch.auth.AuthViewModel
 import com.example.marketwatch.ui.theme.ThemeViewModel
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
-    object Home : Screen("home", "Home", Icons.Default.Home)
-    object Portfolio : Screen("portfolio", "Portfolio", Icons.Default.ShowChart)
+    object Search : Screen("search", "Search", Icons.Default.Search)
+    object Portfolio : Screen("portfolio", "Portfolio", Icons.AutoMirrored.Filled.ShowChart)
     object Profile : Screen("profile", "Profile", Icons.Default.AccountCircle)
 }
 
 val items = listOf(
-    Screen.Home,
+    Screen.Search,
     Screen.Portfolio,
     Screen.Profile
 )
@@ -46,14 +48,11 @@ val items = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    userName: String,
-    onLogout: () -> Unit,
-    onAccountDeleted: () -> Unit, // New callback
+    authViewModel: AuthViewModel, 
     themeViewModel: ThemeViewModel
 ) {
     val navController = rememberNavController()
     val isDarkMode by themeViewModel.isDarkMode.collectAsState()
-    val authViewModel: AuthViewModel = viewModel() // Get AuthViewModel here
 
     Scaffold(
         topBar = {
@@ -66,8 +65,8 @@ fun MainScreen(
                             contentDescription = "Toggle Theme"
                         )
                     }
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.Default.Logout, contentDescription = "Logout")
+                    IconButton(onClick = { authViewModel.logout() }) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
                     }
                 }
             )
@@ -97,16 +96,22 @@ fun MainScreen(
     ) { innerPadding ->
         NavHost(
             navController,
-            startDestination = Screen.Home.route,
+            startDestination = Screen.Portfolio.route,
             Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeScreen(userName) }
-            composable(Screen.Portfolio.route) { PortfolioScreen() }
+            composable(Screen.Search.route) { SearchScreen() }
+            composable(Screen.Portfolio.route) { 
+                PortfolioScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") }) 
+            }
             composable(Screen.Profile.route) { 
-                ProfileScreen(
-                    authViewModel = authViewModel,
-                    onAccountDeleted = onAccountDeleted // Pass callback to ProfileScreen
-                )
+                ProfileScreen(authViewModel = authViewModel)
+            }
+            composable(
+                route = "stockDetail/{stockSymbol}",
+                arguments = listOf(navArgument("stockSymbol") { type = NavType.StringType })
+            ) {
+                val stockSymbol = it.arguments?.getString("stockSymbol") ?: ""
+                StockDetailScreen(stockSymbol, onNavigateBack = { navController.navigateUp() })
             }
         }
     }

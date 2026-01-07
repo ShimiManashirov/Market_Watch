@@ -3,6 +3,7 @@ package com.example.marketwatch.auth
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,6 +11,9 @@ import kotlinx.coroutines.flow.asStateFlow
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+
+    private val _currentUser = MutableStateFlow<FirebaseUser?>(auth.currentUser)
+    val currentUser = _currentUser.asStateFlow()
 
     private val _userName = MutableStateFlow("Guest")
     val userName = _userName.asStateFlow()
@@ -21,21 +25,34 @@ class AuthViewModel : ViewModel() {
     val userPreferences = _userPreferences.asStateFlow()
 
     init {
-        fetchUserDetails()
+        auth.addAuthStateListener { firebaseAuth ->
+            val user = firebaseAuth.currentUser
+            _currentUser.value = user
+            if (user != null) {
+                fetchUserDetails(user.uid)
+            } else {
+                clearUserDetails()
+            }
+        }
     }
 
-    private fun fetchUserDetails() {
-        val userId = auth.currentUser?.uid
-        userId?.let {
-            db.collection("users").document(it).get()
-                .addOnSuccessListener { document ->
-                    if (document != null && document.exists()) {
-                        _userName.value = document.getString("name") ?: "Guest"
-                        _userEmail.value = document.getString("email") ?: ""
-                        _userPreferences.value = document.data ?: emptyMap()
-                    }
+    private fun fetchUserDetails(userId: String) {
+        db.collection("users").document(userId).get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    _userName.value = document.getString("name") ?: "Guest"
+                    _userEmail.value = document.getString("email") ?: ""
+                    val data = document.data
+                    val simpleData = data?.filterValues { it !is Map<*, *> && it !is List<*> }
+                    _userPreferences.value = simpleData ?: emptyMap()
                 }
-        }
+            }
+    }
+
+    private fun clearUserDetails() {
+        _userName.value = "Guest"
+        _userEmail.value = ""
+        _userPreferences.value = emptyMap()
     }
 
     fun updateUserPreference(key: String, value: String) {
@@ -44,7 +61,7 @@ class AuthViewModel : ViewModel() {
             db.collection("users").document(it).update(key, value)
                 .addOnSuccessListener { 
                     Log.d("AuthViewModel", "User preference updated: $key = $value")
-                    fetchUserDetails()
+                    fetchUserDetails(userId)
                 }
                 .addOnFailureListener { e -> Log.w("AuthViewModel", "Error updating preference", e) }
         }
@@ -71,11 +88,9 @@ class AuthViewModel : ViewModel() {
             return
         }
 
-        // 1. Delete user document from Firestore
         db.collection("users").document(userId).delete()
             .addOnSuccessListener { 
                 Log.d("AuthViewModel", "User document deleted from Firestore")
-                // 2. Delete user from Authentication
                 user.delete()
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
@@ -101,18 +116,14 @@ class AuthViewModel : ViewModel() {
                     val userDetails = hashMapOf(
                         "name" to fullName,
                         "email" to email,
-                        "currency" to "USD - $ (דולר אמריקאי)", // Default preference
-                        "timezone" to "(UTC+3) ישראל" // Default preference
+                        "currency" to "USD - $ (US Dollar)",
+                        "timezone" to "(UTC+3) Israel"
                     )
 
                     userId?.let {
                         db.collection("users").document(it).set(userDetails)
-                            .addOnSuccessListener { 
-                                onComplete(true, null) 
-                            }
-                            .addOnFailureListener { e ->
-                                onComplete(false, e.message)
-                            }
+                            .addOnSuccessListener { onComplete(true, null) }
+                            .addOnFailureListener { e -> onComplete(false, e.message) }
                     }
                 } else {
                     onComplete(false, task.exception?.message)
@@ -123,19 +134,11 @@ class AuthViewModel : ViewModel() {
     fun loginUser(email: String, password: String, onComplete: (Boolean, String?) -> Unit) {
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    fetchUserDetails() // Fetch user details on successful login
-                    onComplete(true, null)
-                } else {
-                    onComplete(false, task.exception?.message)
-                }
+                onComplete(task.isSuccessful, task.exception?.message)
             }
     }
 
     fun logout() {
         auth.signOut()
-        _userName.value = "Guest"
-        _userEmail.value = ""
-        _userPreferences.value = emptyMap()
     }
 }
