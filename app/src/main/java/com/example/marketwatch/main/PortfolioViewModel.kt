@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// Data classes to represent the portfolio structure
 data class Stock(val id: String, val symbol: String, val name: String)
 data class PortfolioItem(val stock: Stock, val quote: FinnhubQuote? = null)
 
@@ -31,6 +32,7 @@ class PortfolioViewModel : ViewModel() {
     private fun fetchUserPortfolio() {
         val userId = auth.currentUser?.uid ?: return
 
+        // Listener for real-time updates from Firestore
         db.collection("users").document(userId).collection("portfolio")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -48,8 +50,11 @@ class PortfolioViewModel : ViewModel() {
                     }
                 } ?: emptyList()
 
+                // Update UI immediately with basic stock info
+                _portfolioItems.value = stockList.map { PortfolioItem(it) }
+
+                // Fetch detailed quotes for each stock in the background
                 viewModelScope.launch {
-                    _portfolioItems.value = stockList.map { PortfolioItem(it) } // Initial loading state
                     try {
                         val updatedItems = stockList.map { stock ->
                             async {
@@ -60,7 +65,7 @@ class PortfolioViewModel : ViewModel() {
                         _portfolioItems.value = updatedItems
                     } catch (e: Exception) {
                         Log.e("PortfolioViewModel", "Error fetching quotes", e)
-                        // You might want to update the UI to show an error state
+                        // In case of error, the UI will just show the stock names without prices
                     }
                 }
             }
@@ -75,6 +80,7 @@ class PortfolioViewModel : ViewModel() {
 
         val portfolioCollection = db.collection("users").document(userId).collection("portfolio")
 
+        // Check if the stock already exists
         portfolioCollection.whereEqualTo("symbol", symbol.uppercase()).get()
             .addOnSuccessListener { documents ->
                 if (documents.isEmpty) {

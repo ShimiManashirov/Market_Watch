@@ -27,7 +27,7 @@ fun SearchScreen(
 ) {
     val uiState by searchViewModel.uiState.collectAsState()
     var query by remember { mutableStateOf("") }
-    
+
     var showResultDialog by remember { mutableStateOf(false) }
     var dialogMessage by remember { mutableStateOf("") }
     var isDialogSuccess by remember { mutableStateOf(true) }

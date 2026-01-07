@@ -18,7 +18,7 @@ import java.util.Locale
 sealed interface StockDetailUiState {
     object Loading : StockDetailUiState
     data class Success(
-        val quote: FinnhubQuote, 
+        val quote: FinnhubQuote,
         val profile: FinnhubCompanyProfile,
         val news: List<CompanyNews>
     ) : StockDetailUiState
@@ -34,7 +34,7 @@ class StockDetailViewModel(private val stockSymbol: String) : ViewModel() {
         fetchStockData()
     }
 
-    fun fetchStockData() {
+    private fun fetchStockData() {
         viewModelScope.launch {
             _uiState.value = StockDetailUiState.Loading
             try {
@@ -43,7 +43,7 @@ class StockDetailViewModel(private val stockSymbol: String) : ViewModel() {
 
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
                 val to = Calendar.getInstance()
-                val from = Calendar.getInstance().apply { add(Calendar.MONTH, -1) } // A month ago
+                val from = Calendar.getInstance().apply { add(Calendar.MONTH, -1) }
                 val fromString = dateFormat.format(from.time)
                 val toString = dateFormat.format(to.time)
                 val newsDeferred = viewModelScope.async { ApiClient.finnhubApi.getCompanyNews(stockSymbol, fromString, toString, ApiClient.API_KEY) }

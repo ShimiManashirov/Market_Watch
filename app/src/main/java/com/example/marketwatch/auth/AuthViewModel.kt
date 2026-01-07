@@ -1,16 +1,19 @@
 package com.example.marketwatch.auth
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val storage: FirebaseStorage = FirebaseStorage.getInstance()
 
     private val _currentUser = MutableStateFlow<FirebaseUser?>(auth.currentUser)
     val currentUser = _currentUser.asStateFlow()
@@ -23,6 +26,9 @@ class AuthViewModel : ViewModel() {
 
     private val _userPreferences = MutableStateFlow<Map<String, Any>>(emptyMap())
     val userPreferences = _userPreferences.asStateFlow()
+
+    private val _userProfileImageUrl = MutableStateFlow<String?>(null)
+    val userProfileImageUrl = _userProfileImageUrl.asStateFlow()
 
     init {
         auth.addAuthStateListener { firebaseAuth ->
@@ -42,6 +48,7 @@ class AuthViewModel : ViewModel() {
                 if (document != null && document.exists()) {
                     _userName.value = document.getString("name") ?: "Guest"
                     _userEmail.value = document.getString("email") ?: ""
+                    _userProfileImageUrl.value = document.getString("profileImageUrl")
                     val data = document.data
                     val simpleData = data?.filterValues { it !is Map<*, *> && it !is List<*> }
                     _userPreferences.value = simpleData ?: emptyMap()
@@ -53,6 +60,7 @@ class AuthViewModel : ViewModel() {
         _userName.value = "Guest"
         _userEmail.value = ""
         _userPreferences.value = emptyMap()
+        _userProfileImageUrl.value = null
     }
 
     fun updateUserPreference(key: String, value: String) {
@@ -65,6 +73,25 @@ class AuthViewModel : ViewModel() {
                 }
                 .addOnFailureListener { e -> Log.w("AuthViewModel", "Error updating preference", e) }
         }
+    }
+
+    fun uploadProfileImage(uri: Uri, onResult: (Boolean, String?) -> Unit) {
+        val userId = auth.currentUser?.uid ?: run {
+            onResult(false, "User not logged in.")
+            return
+        }
+        val storageRef = storage.reference.child("profile_images/$userId")
+
+        storageRef.putFile(uri)
+            .addOnSuccessListener {
+                storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                    updateUserPreference("profileImageUrl", downloadUri.toString())
+                    onResult(true, null)
+                }
+            }
+            .addOnFailureListener { e ->
+                onResult(false, e.message)
+            }
     }
 
     fun changeUserPassword(newPassword: String, onComplete: (Boolean, String?) -> Unit) {

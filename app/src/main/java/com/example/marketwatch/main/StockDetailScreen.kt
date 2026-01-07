@@ -36,7 +36,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockDetailScreen(
-    stockSymbol: String, 
+    stockSymbol: String,
     onNavigateBack: () -> Unit,
     viewModel: StockDetailViewModel = viewModel(factory = StockDetailViewModelFactory(stockSymbol))
 ) {

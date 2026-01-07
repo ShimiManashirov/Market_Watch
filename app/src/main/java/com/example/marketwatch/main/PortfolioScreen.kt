@@ -26,19 +26,22 @@ fun PortfolioScreen(
 
     if (portfolioItems.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Your portfolio is empty. Add a stock to get started.")
+            // Show a progress indicator while the portfolio is loading for the first time
+            CircularProgressIndicator()
+            // A more descriptive text will be helpful for the user
+            Text("Loading your portfolio...", modifier = Modifier.padding(top = 100.dp))
         }
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(portfolioItems, key = { it.stock.id }) { item ->
                 StockCard(
-                    item = item, 
+                    item = item,
                     onRemove = { portfolioViewModel.removeStock(item.stock.id) },
-                    onClick = { onStockClick(item.stock.symbol) } 
+                    onClick = { onStockClick(item.stock.symbol) }
                 )
             }
         }
@@ -69,8 +72,8 @@ fun StockCard(item: PortfolioItem, onRemove: () -> Unit, onClick: () -> Unit) {
                     val changeColor = if (priceChange >= 0) Color(0xFF00C853) else Color.Red
 
                     Text(
-                        text = "${String.format(Locale.US, "%.2f", item.quote.currentPrice)} USD", 
-                        fontWeight = FontWeight.SemiBold, 
+                        text = "${String.format(Locale.US, "%.2f", item.quote.currentPrice)} USD",
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 18.sp
                     )
                     Text(
@@ -80,6 +83,7 @@ fun StockCard(item: PortfolioItem, onRemove: () -> Unit, onClick: () -> Unit) {
                     )
                 }
             } else {
+                // Show a small progress indicator for each item while its price is loading
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
             IconButton(onClick = onRemove) {

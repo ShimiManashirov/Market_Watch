@@ -3,10 +3,10 @@ package com.example.marketwatch
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -18,11 +18,13 @@ import com.example.marketwatch.ui.theme.MarketWatchTheme
 import com.example.marketwatch.ui.theme.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val authViewModel: AuthViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val themeViewModel: ThemeViewModel = viewModel()
-            val authViewModel: AuthViewModel = viewModel()
+            val themeViewModel: ThemeViewModel by viewModels()
             val isDarkMode by themeViewModel.isDarkMode.collectAsState()
 
             MarketWatchTheme(darkTheme = isDarkMode) {

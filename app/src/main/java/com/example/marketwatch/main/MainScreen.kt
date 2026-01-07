@@ -5,9 +5,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -101,7 +100,7 @@ fun MainScreen(
         ) {
             composable(Screen.Search.route) { SearchScreen() }
             composable(Screen.Portfolio.route) { 
-                PortfolioScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") }) 
+                PortfolioScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") })
             }
             composable(Screen.Profile.route) { 
                 ProfileScreen(authViewModel = authViewModel)

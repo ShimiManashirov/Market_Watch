@@ -1,8 +1,14 @@
 package com.example.marketwatch.main
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -11,13 +17,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.marketwatch.R
 import com.example.marketwatch.auth.AuthViewModel
 
 data class Preference(val title: String, val key: String, val icon: ImageVector, val options: List<String>)
@@ -30,10 +41,24 @@ fun ProfileScreen(
     val userName by authViewModel.userName.collectAsState()
     val userEmail by authViewModel.userEmail.collectAsState()
     val userPreferences by authViewModel.userPreferences.collectAsState()
+    val userProfileImageUrl by authViewModel.userProfileImageUrl.collectAsState()
+
     var showPasswordDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditNameDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent())
+    { uri: Uri? ->
+        uri?.let {
+            authViewModel.uploadProfileImage(it) { success, message ->
+                if (!success) {
+                    Toast.makeText(context, "Failed to upload image: $message", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
 
     val preferences = listOf(
         Preference("Timezone", "timezone", Icons.Default.Language, listOf("(UTC+3) Israel", "(UTC-4) New York", "(UTC+1) London")),    
@@ -85,7 +110,19 @@ fun ProfileScreen(
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
     ) {
-        Header()
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            AsyncImage(
+                model = userProfileImageUrl,
+                contentDescription = "User Profile Image",
+                placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+                error = painterResource(id = R.drawable.ic_launcher_foreground),
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .clickable { launcher.launch("image/*") },
+                contentScale = ContentScale.Crop
+            )
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
