@@ -9,6 +9,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.Date
 
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -29,6 +30,9 @@ class AuthViewModel : ViewModel() {
 
     private val _userProfileImageUrl = MutableStateFlow<String?>(null)
     val userProfileImageUrl = _userProfileImageUrl.asStateFlow()
+
+    private val _watchlist = MutableStateFlow<List<String>>(emptyList())
+    val watchlist = _watchlist.asStateFlow()
 
     init {
         auth.addAuthStateListener { firebaseAuth ->
@@ -54,6 +58,17 @@ class AuthViewModel : ViewModel() {
                     _userPreferences.value = simpleData ?: emptyMap()
                 }
             }
+        
+        // Fetch watchlist
+        db.collection("users").document(userId).collection("watchlist")
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.w("AuthViewModel", "Listen failed.", e)
+                    return@addSnapshotListener
+                }
+                val symbols = snapshot?.documents?.map { it.id } ?: emptyList()
+                _watchlist.value = symbols
+            }
     }
 
     private fun clearUserDetails() {
@@ -61,6 +76,25 @@ class AuthViewModel : ViewModel() {
         _userEmail.value = ""
         _userPreferences.value = emptyMap()
         _userProfileImageUrl.value = null
+        _watchlist.value = emptyList()
+    }
+
+    fun toggleWatchlist(symbol: String, onComplete: (Boolean, Boolean) -> Unit) {
+        val userId = auth.currentUser?.uid ?: return onComplete(false, false)
+        val docRef = db.collection("users").document(userId).collection("watchlist").document(symbol)
+        val isInWatchlist = _watchlist.value.contains(symbol)
+
+        if (isInWatchlist) {
+            // Remove from watchlist
+            docRef.delete()
+                .addOnSuccessListener { onComplete(true, false) } // Success, removed
+                .addOnFailureListener { onComplete(false, false) }
+        } else {
+            // Add to watchlist
+            docRef.set(mapOf("addedAt" to Date()))
+                .addOnSuccessListener { onComplete(true, true) } // Success, added
+                .addOnFailureListener { onComplete(false, false) }
+        }
     }
 
     fun updateUserPreference(key: String, value: String) {

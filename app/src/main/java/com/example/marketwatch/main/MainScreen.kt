@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -51,6 +52,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Feed : Screen("feed", "Feed", Icons.AutoMirrored.Filled.Feed)
     object Search : Screen("search", "Search", Icons.Default.Search)
     object Portfolio : Screen("portfolio", "Portfolio", Icons.AutoMirrored.Filled.ShowChart)
+    object Watchlist : Screen("watchlist", "Watchlist", Icons.Default.Star)
     object Profile : Screen("profile", "Profile", Icons.Default.AccountCircle)
 }
 
@@ -58,6 +60,7 @@ val items = listOf(
     Screen.Feed,
     Screen.Search,
     Screen.Portfolio,
+    Screen.Watchlist,
     Screen.Profile
 )
 
@@ -152,6 +155,9 @@ fun MainScreen(
             }
             composable(Screen.Portfolio.route) { 
                 PortfolioScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") })
+            }
+             composable(Screen.Watchlist.route) { 
+                WatchlistScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") })
             }
             composable(Screen.Profile.route) { 
                 ProfileScreen(authViewModel = authViewModel)

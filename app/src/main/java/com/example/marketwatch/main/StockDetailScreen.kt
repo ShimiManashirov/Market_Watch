@@ -12,6 +12,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.marketwatch.auth.AuthViewModel
 import com.example.marketwatch.network.CompanyNews
 import com.example.marketwatch.network.FinnhubCompanyProfile
 import com.example.marketwatch.network.FinnhubQuote
@@ -39,12 +42,15 @@ import java.util.*
 fun StockDetailScreen(
     stockSymbol: String, 
     onNavigateBack: () -> Unit,
+    authViewModel: AuthViewModel = viewModel(),
     viewModel: StockDetailViewModel = viewModel(factory = StockDetailViewModelFactory(stockSymbol))
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showBuyDialog by remember { mutableStateOf(false) }
     var showSellDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val watchlist by authViewModel.watchlist.collectAsState()
+    val isWatchlisted = watchlist.contains(stockSymbol)
 
     if (showBuyDialog) {
         (uiState as? StockDetailUiState.Success)?.let {
@@ -92,6 +98,22 @@ fun StockDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { 
+                        authViewModel.toggleWatchlist(stockSymbol) { success, added ->
+                            if(success) {
+                                val message = if(added) "Added to watchlist" else "Removed from watchlist"
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (isWatchlisted) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                            contentDescription = "Toggle Watchlist",
+                            tint = if (isWatchlisted) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             )

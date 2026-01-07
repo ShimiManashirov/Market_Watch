@@ -217,6 +217,7 @@ fun AddEditPostDialog(
 ) {
     var text by remember { mutableStateOf(post?.text ?: "") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
