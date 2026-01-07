@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Feed
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.AccountCircle
@@ -47,12 +48,14 @@ import com.example.marketwatch.auth.AuthViewModel
 import com.example.marketwatch.ui.theme.ThemeViewModel
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+    object Feed : Screen("feed", "Feed", Icons.AutoMirrored.Filled.Feed)
     object Search : Screen("search", "Search", Icons.Default.Search)
     object Portfolio : Screen("portfolio", "Portfolio", Icons.AutoMirrored.Filled.ShowChart)
     object Profile : Screen("profile", "Profile", Icons.Default.AccountCircle)
 }
 
 val items = listOf(
+    Screen.Feed,
     Screen.Search,
     Screen.Portfolio,
     Screen.Profile
@@ -128,6 +131,9 @@ fun MainScreen(
             startDestination = Screen.Portfolio.route,
             Modifier.padding(innerPadding)
         ) {
+            composable(Screen.Feed.route) { 
+                FeedScreen(onAddPost = { /* Navigate to Add Post Screen */ })
+            }
             composable(Screen.Search.route) { 
                 SearchScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") })
             }
