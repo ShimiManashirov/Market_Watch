@@ -2,18 +2,18 @@ package com.example.marketwatch.main
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,11 +37,51 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockDetailScreen(
-    stockSymbol: String,
+    stockSymbol: String, 
     onNavigateBack: () -> Unit,
     viewModel: StockDetailViewModel = viewModel(factory = StockDetailViewModelFactory(stockSymbol))
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showBuyDialog by remember { mutableStateOf(false) }
+    var showSellDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    if (showBuyDialog) {
+        (uiState as? StockDetailUiState.Success)?.let {
+            AddTransactionDialog(
+                stockName = it.profile.name ?: "",
+                currentPrice = it.quote.currentPrice ?: 0.0,
+                onConfirm = { quantity, price ->
+                    viewModel.addTransaction(it.profile.ticker ?: stockSymbol, it.profile.name ?: "", quantity, price) { success, message ->
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        if (success) {
+                            showBuyDialog = false
+                        }
+                    }
+                },
+                onDismiss = { showBuyDialog = false }
+            )
+        }
+    }
+
+    if (showSellDialog) {
+        (uiState as? StockDetailUiState.Success)?.let {
+            AddTransactionDialog(
+                stockName = it.profile.name ?: "",
+                currentPrice = it.quote.currentPrice ?: 0.0,
+                isBuy = false,
+                onConfirm = { quantity, price ->
+                    viewModel.addTransaction(it.profile.ticker ?: stockSymbol, it.profile.name ?: "", -quantity, price) { success, message ->
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        if (success) {
+                            showSellDialog = false
+                        }
+                    }
+                },
+                onDismiss = { showSellDialog = false }
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -51,6 +92,12 @@ fun StockDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
+            )
+        },
+        bottomBar = {
+            ActionButtons(
+                onBuyClick = { showBuyDialog = true },
+                onSellClick = { showSellDialog = true }
             )
         }
     ) { padding ->
@@ -253,4 +300,74 @@ private fun ProfileRow(label: String, value: String?) {
             Text(text = value, modifier = Modifier.weight(0.6f))
         }
     }
+}
+
+@Composable
+fun ActionButtons(onBuyClick: () -> Unit, onSellClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Button(onClick = onBuyClick, modifier = Modifier.weight(1f)) {
+            Text("Buy")
+        }
+        OutlinedButton(onClick = onSellClick, modifier = Modifier.weight(1f)) {
+            Text("Sell")
+        }
+    }
+}
+
+@Composable
+fun AddTransactionDialog(
+    stockName: String,
+    currentPrice: Double,
+    isBuy: Boolean = true,
+    onConfirm: (quantity: Double, price: Double) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var quantity by remember { mutableStateOf("1") }
+    var price by remember { mutableStateOf(String.format(Locale.US, "%.2f", currentPrice)) }
+    val title = if (isBuy) "Buy $stockName" else "Sell $stockName"
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { quantity = it },
+                    label = { Text("Quantity") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Price per Share") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val quantityValue = quantity.toDoubleOrNull() ?: 0.0
+                    val priceValue = price.toDoubleOrNull() ?: 0.0
+                    if (quantityValue > 0 && priceValue > 0) {
+                        onConfirm(quantityValue, priceValue)
+                    }
+                }
+            ) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

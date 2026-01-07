@@ -4,10 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,34 +22,62 @@ fun PortfolioScreen(
     portfolioViewModel: PortfolioViewModel = viewModel(),
     onStockClick: (String) -> Unit
 ) {
-    val portfolioItems by portfolioViewModel.portfolioItems.collectAsState()
+    val holdings by portfolioViewModel.holdings.collectAsState()
+    val totalPortfolioValue by portfolioViewModel.totalPortfolioValue.collectAsState()
 
-    if (portfolioItems.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            // Show a progress indicator while the portfolio is loading for the first time
-            CircularProgressIndicator()
-            // A more descriptive text will be helpful for the user
-            Text("Loading your portfolio...", modifier = Modifier.padding(top = 100.dp))
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(portfolioItems, key = { it.stock.id }) { item ->
-                StockCard(
-                    item = item,
-                    onRemove = { portfolioViewModel.removeStock(item.stock.id) },
-                    onClick = { onStockClick(item.stock.symbol) }
-                )
+    Column(modifier = Modifier.fillMaxSize()) {
+        TotalPortfolioValue(value = totalPortfolioValue)
+        if (holdings.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Your portfolio is empty. Buy a stock to get started.")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(holdings, key = { it.symbol }) { holding ->
+                    HoldingCard(
+                        holding = holding,
+                        onClick = { onStockClick(holding.symbol) }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun StockCard(item: PortfolioItem, onRemove: () -> Unit, onClick: () -> Unit) {
+fun TotalPortfolioValue(value: Double) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        elevation = CardDefaults.cardElevation(8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Total Portfolio Value", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "${String.format(Locale.US, "%,.2f", value)} USD",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun HoldingCard(holding: Holding, onClick: () -> Unit) {
+    val currentValue = holding.totalValue ?: (holding.averagePrice * holding.totalQuantity)
+    val totalCost = holding.averagePrice * holding.totalQuantity
+    val gainLoss = currentValue - totalCost
+    val gainLossPercent = if (totalCost > 0) (gainLoss / totalCost) * 100 else 0.0
+    val changeColor = if (gainLoss >= 0) Color(0xFF00C853) else Color.Red
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -57,38 +85,31 @@ fun StockCard(item: PortfolioItem, onRemove: () -> Unit, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.stock.symbol, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text(text = item.stock.name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (item.quote != null) {
-                Column(horizontalAlignment = Alignment.End) {
-                    val priceChange = item.quote.change ?: 0.0
-                    val percentChange = item.quote.percentChange ?: 0.0
-                    val changeColor = if (priceChange >= 0) Color(0xFF00C853) else Color.Red
-
-                    Text(
-                        text = "${String.format(Locale.US, "%.2f", item.quote.currentPrice)} USD",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp
-                    )
-                    Text(
-                        text = "${String.format(Locale.US, "%.2f", priceChange)} (${String.format(Locale.US, "%.2f", percentChange)}%)",
-                        color = changeColor,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = holding.symbol, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text(text = holding.name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            } else {
-                // Show a small progress indicator for each item while its price is loading
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                Column(horizontalAlignment = Alignment.End) {
+                    if (holding.currentPrice != null) {
+                        Text(
+                            text = "${String.format(Locale.US, "%,.2f", currentValue)} USD",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "${String.format(Locale.US, "%.2f", gainLoss)} (${String.format(Locale.US, "%.2f", gainLossPercent)}%)",
+                            color = changeColor,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                }
             }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Delete, contentDescription = "Remove Stock")
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "${String.format(Locale.US, "%.2f", holding.totalQuantity)} shares at avg. ${String.format(Locale.US, "%.2f", holding.averagePrice)}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

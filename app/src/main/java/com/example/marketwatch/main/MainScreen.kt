@@ -98,7 +98,9 @@ fun MainScreen(
             startDestination = Screen.Portfolio.route,
             Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Search.route) { SearchScreen() }
+            composable(Screen.Search.route) { 
+                SearchScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") })
+            }
             composable(Screen.Portfolio.route) { 
                 PortfolioScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") })
             }
