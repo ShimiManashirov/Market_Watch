@@ -6,7 +6,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
-import com.example.marketwatch.main.Transaction
 import java.util.Date
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Dao
@@ -30,9 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "marketwatch_database"
-                )
-                .fallbackToDestructiveMigration()
-                .build()
+                ).build()
                 INSTANCE = instance
                 instance
             }
@@ -43,13 +40,13 @@ abstract class AppDatabase : RoomDatabase() {
 @Dao
 interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTransaction(transaction: Transaction)
+    suspend fun insertAll(transactions: List<Transaction>)
 
-    @Query("SELECT * FROM `transaction` ORDER BY date DESC")
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
     fun getAllTransactions(): Flow<List<Transaction>>
 
-    @Query("DELETE FROM `transaction` WHERE id = :transactionId")
-    suspend fun deleteTransaction(transactionId: Long)
+    @Query("DELETE FROM transactions")
+    suspend fun deleteAll()
 }
 
 class Converters {

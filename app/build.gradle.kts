@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kotlin.serialization)
+    id("kotlin-kapt")
 }
 
 // read local.properties to expose FINNHUB_API_KEY to BuildConfig
@@ -73,6 +74,7 @@ dependencies {
     // Room for local database
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1") // Changed from ksp to kapt
 
     // Firebase Dependencies
     implementation("com.google.firebase:firebase-auth-ktx:23.2.1")
@@ -80,7 +82,7 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck-playintegrity:19.0.1")
     implementation("com.google.firebase:firebase-appcheck-debug:19.0.1")
     implementation("com.google.firebase:firebase-firestore-ktx:25.1.4")
-    implementation("com.google.firebase:firebase-storage-ktx:20.3.0") // Changed Firebase Storage version
+    implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
 
     // Networking / Coroutines
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
