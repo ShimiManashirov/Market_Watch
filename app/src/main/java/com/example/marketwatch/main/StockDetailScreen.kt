@@ -56,6 +56,7 @@ fun StockDetailScreen(
                         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                         if (success) {
                             showBuyDialog = false
+                            onNavigateBack()
                         }
                     }
                 },
@@ -75,6 +76,7 @@ fun StockDetailScreen(
                         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                         if (success) {
                             showSellDialog = false
+                            onNavigateBack()
                         }
                     }
                 },
