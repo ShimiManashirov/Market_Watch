@@ -132,10 +132,20 @@ fun MainScreen(
             Modifier.padding(innerPadding)
         ) {
             composable(Screen.Feed.route) { 
-                FeedScreen(onAddPost = { navController.navigate("addPost") })
+                FeedScreen(
+                    onAddPost = { navController.navigate("addPost") },
+                    onEditPost = { postId -> navController.navigate("editPost/$postId") }
+                )
             }
             composable("addPost") {
                 AddPostScreen(onNavigateBack = { navController.navigateUp() })
+            }
+            composable(
+                route = "editPost/{postId}",
+                arguments = listOf(navArgument("postId") { type = NavType.StringType })
+            ) {
+                val postId = it.arguments?.getString("postId") ?: ""
+                EditPostScreen(postId = postId, onNavigateBack = { navController.navigateUp() })
             }
             composable(Screen.Search.route) { 
                 SearchScreen(onStockClick = { symbol -> navController.navigate("stockDetail/$symbol") })

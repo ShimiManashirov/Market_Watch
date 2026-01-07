@@ -26,7 +26,7 @@ import coil.compose.rememberAsyncImagePainter
 @Composable
 fun AddPostScreen(
     onNavigateBack: () -> Unit,
-    addPostViewModel: AddPostViewModel = viewModel()
+    feedViewModel: FeedViewModel = viewModel()
 ) {
     var text by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -54,7 +54,7 @@ fun AddPostScreen(
                         Button(
                             onClick = {
                                 isPosting = true
-                                addPostViewModel.createPost(text, imageUri) {
+                                feedViewModel.createPost(text, imageUri) {
                                     isPosting = false
                                     if (it) {
                                         onNavigateBack()
@@ -84,7 +84,12 @@ fun AddPostScreen(
                 onValueChange = { text = it },
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 placeholder = { Text("What's on your mind?") },
-                colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent, errorIndicatorColor = Color.Transparent)
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent
+                )
             )
 
             imageUri?.let {
